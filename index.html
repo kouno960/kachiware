@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>カチ割れ！最強まちち割り！</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -19,6 +19,8 @@
 }
 :root[data-theme="dark"]{ --page:#3a2440; --ink:#ffe0ec; --panel:#7a4a7a; --btn:#9a5a9a; --btn-ink:#ffffff; --accent:#ff5a8a; }
 *,*::before,*::after{box-sizing:inherit}
+html,#wrap,canvas,#pad,#mid,#help,#mute{touch-action:manipulation}
+*{-webkit-tap-highlight-color:transparent}
 html,body{height:100%;margin:0}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 body{background:var(--page);color:var(--ink);font-family:"DotGothic16",system-ui,sans-serif;
@@ -82,6 +84,14 @@ canvas{display:block;image-rendering:pixelated;image-rendering:crisp-edges;backg
 (()=>{
 "use strict";
 const cv=document.getElementById('c'),ctx=cv.getContext('2d');
+/* iPhone: stop double-tap zoom and pinch zoom while playing */
+document.querySelectorAll('meta[name=viewport]').forEach(m=>m.setAttribute('content','width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover'));
+{let lastTE=0;
+document.addEventListener('touchend',e=>{const now=Date.now();if(now-lastTE<400&&e.cancelable)e.preventDefault();lastTE=now},{passive:false}); // a 2nd tap within 0.4s never becomes a zoom
+document.addEventListener('dblclick',e=>e.preventDefault(),{passive:false});
+for(const ev of['gesturestart','gesturechange','gestureend'])document.addEventListener(ev,e=>e.preventDefault(),{passive:false}); // Safari pinch
+document.addEventListener('touchmove',e=>{if(e.touches.length>1&&e.cancelable)e.preventDefault()},{passive:false});}
+
 ctx.imageSmoothingEnabled=false;
 const SS=3; // render scale: world is 256x256, canvas is 768x768 so the hero illustration stays sharp
 const T=16,HUD=32;let VW=256,VH=224,MH=14,ZM=1,ROFF=0; // map height in rows (the karaoke tower is taller); VW/VH = world view size (bigger while zoomed out); ROFF = extra rows above row 0
