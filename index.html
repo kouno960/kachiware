@@ -1,3 +1,4 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -83,7 +84,7 @@ canvas{display:block;image-rendering:pixelated;image-rendering:crisp-edges;backg
 <script>
 (()=>{
 "use strict";
-const cv=document.getElementById('c'),ctx=cv.getContext('2d');
+const cv=document.getElementById('c');let ctx=cv.getContext('2d'); // let: drawCandle borrows ctx briefly to draw onto its glow canvas
 /* iPhone: stop double-tap zoom and pinch zoom while playing */
 document.querySelectorAll('meta[name=viewport]').forEach(m=>m.setAttribute('content','width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover'));
 {let lastTE=0;
@@ -2934,10 +2935,11 @@ function drawBGPractice(cx){ // dance rehearsal room: beige walls, pillars, crea
     R(x,32,18,124,'#f4ead6');R(x+14,32,4,124,'#d8c8a8');R(x,118,18,2,'#cdbd9a');                 // pillar
   }
   R(0,136,VW,20,'#e8dec8');R(0,136,VW,2,'#cdbd9a');R(0,154,VW,2,'#cdbd9a');                       // wainscot
-  const o2=-((cx*0.8)%400); // props: mic stands, chairs, a balance ball, folding table
+  const o2=-((cx*0.8)%400); // props: mic stands, chairs, a potted plant, folding table
   for(let x=o2-400;x<VW+400;x+=400){
     for(const mx of[30,52]){R(x+mx,150,1,40,'#2a2a2a');R(x+mx-1,146,3,5,'#3a3a3a');ctx.strokeStyle='#2a2a2a';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x+mx-6,191);ctx.lineTo(x+mx,184);ctx.lineTo(x+mx+6,191);ctx.stroke()}
-    circ(x+120,180,11,'#d9483b');ctx.fillStyle='rgba(255,255,255,.35)';ctx.beginPath();ctx.arc(x+116,176,3,0,7);ctx.fill();
+    {const px=x+120;ctx.fillStyle='#6f9a5a';for(const[dx,dy,rx,ry,a]of[[-6,166,4,9,-0.5],[6,166,4,9,0.5],[0,162,4,11,0],[-9,174,3,7,-1],[9,174,3,7,1]]){ctx.beginPath();ctx.ellipse(px+dx,dy,rx,ry,a,0,7);ctx.fill()} // potted plant (was a red balance ball that looked like a ball item)
+     R(px-1,170,2,10,'#557a45');ctx.fillStyle='#c08a5a';ctx.beginPath();ctx.moveTo(px-8,180);ctx.lineTo(px+8,180);ctx.lineTo(px+6,191);ctx.lineTo(px-6,191);ctx.fill();R(px-9,179,18,3,'#a8744a')}
     R(x+200,170,40,3,'#9a7a50');R(x+204,173,2,18,'#5a5a5a');R(x+234,173,2,18,'#5a5a5a');           // table
     R(x+300,166,14,3,'#b08848');R(x+300,156,3,12,'#b08848');R(x+301,169,2,22,'#8a6a3a');R(x+311,169,2,22,'#8a6a3a'); // chair
     R(x+340,170,14,21,'#f4f4f0');R(x+342,173,10,2,'#c8c8c0');                                       // air purifier
@@ -3069,7 +3071,29 @@ function drawBGTheater(cx,upper){
     for(let x=56;x<ARENA_W-56;x+=16)R(ax+x,187,4,3,(frame>>4)%2?'#ffe14a':'#fff4c0');
   }
 }
-function drawCandle(c,cx){
+const CFC=document.createElement('canvas'),CFX=CFC.getContext('2d'); // item obstacles: a rainbow-white shine flows over them about every 3 s
+function drawCandle(c,cx){drawCandle0(c,cx);
+  const PER=180,DUR=36,ph=((frame-Math.floor(c.x/T)*3)%PER+PER)%PER;if(ph>=DUR)return; // a little offset by column so the shine ripples along the stage
+  const a=Math.sin(ph/DUR*Math.PI),main=ctx;
+  if(CFC.width!==cv.width||CFC.height!==cv.height){CFC.width=cv.width;CFC.height=cv.height}
+  CFX.setTransform(1,0,0,1,0,0);CFX.globalCompositeOperation='source-over';CFX.globalAlpha=1;CFX.clearRect(0,0,CFC.width,CFC.height);
+  CFX.setTransform(main.getTransform());CFX.imageSmoothingEnabled=false;
+  ctx=CFX;try{drawCandle0(c,cx)}finally{ctx=main}
+  const x=c.x-cx,y=c.y;CFX.globalCompositeOperation='source-atop';
+  const sh=(frame*5)%360,gr=CFX.createLinearGradient(x-8,y-8,x+16,y+28);for(let i=0;i<=8;i++)gr.addColorStop(i/8,'hsl('+((sh+i*45)%360)+',100%,90%)'); // like あづ's rainbow, but almost white
+  CFX.fillStyle=gr;CFX.fillRect(x-80,y-80,176,190);
+  main.save();main.setTransform(1,0,0,1,0,0);main.globalCompositeOperation='lighter';main.globalAlpha=a*0.8;main.drawImage(CFC,0,0);main.restore()} // half the earlier strength (was a + a*0.6), no round halo
+function micArrowOn(){const g=game,L=LV();if(!L.tutorial||!L.lesson||!(g.lessonSec>=0)||g.cake)return null; // tutorial: while the bubble says 「マイクをこわ…」, point at the mics of that area
+  const k=g.lessonSec,sc=L.lesson[k];if(!sc)return null;
+  const lines=sc.gone&&g.azuGone?null:sc.after&&g.azu&&g.azu.on?sc.after:sc.done&&g.drained&&g.hp>=16?sc.done:sc.pre&&!g.drained?sc.pre:sc.l;
+  if(!lines||!/マイクをこわ/.test(lines.join('')))return null;
+  const t=lines.join(''),nx=L.lesson[k+1]?L.lesson[k+1].c:1e9;return[sc.c-2,nx,/マスカット/.test(t)?'G':/月/.test(t)?'L':null]} // the item named in the bubble: only that mic
+function drawMicArrows(cx){const r=micArrowOn();if(!r)return;
+  for(const c of game.candles){if(!c.alive||(r[2]&&c.drop!==r[2]))continue;const col=c.x/T;if(col<r[0]||col>=r[1]||c.x<cx-16||c.x>cx+VW)continue;
+    const x=c.x-cx+4,b=Math.round(Math.abs(Math.sin(frame*0.12))*4),y=c.y-6-b; // bobbing arrow pointing down at the mic
+    ctx.fillStyle='#ffffff';ctx.beginPath();ctx.moveTo(x-6,y-6);ctx.lineTo(x+6,y-6);ctx.lineTo(x,y+1);ctx.closePath();ctx.fill();ctx.fillRect(x-3,y-14,6,9);
+    ctx.fillStyle='#ff5a8a';ctx.beginPath();ctx.moveTo(x-4,y-5);ctx.lineTo(x+4,y-5);ctx.lineTo(x,y-1);ctx.closePath();ctx.fill();ctx.fillRect(x-1,y-12,2,8)}}
+function drawCandle0(c,cx){
   if(LV().theme==='live'){const x=c.x-cx,y=c.y,sw=Math.sin(frame*0.05+c.x*0.3)*0.6,col=['#ffe14a','#ff8ce0','#6af0ff'][Math.floor(c.x/48)%3]; // moving-head stage light on the floor
     ctx.save();ctx.globalCompositeOperation='lighter';ctx.fillStyle='rgba(255,240,200,.10)';ctx.beginPath();ctx.moveTo(x+4,y+10);ctx.lineTo(x+4+Math.sin(sw)*-60-14,y-70);ctx.lineTo(x+4+Math.sin(sw)*-60+14,y-70);ctx.fill();ctx.restore();
     R(x-2,y+18,12,6,'#22222a');R(x-1,y+18,10,1,'#4a4a56');R(x,y+9,2,10,'#2e2e38');R(x+6,y+9,2,10,'#2e2e38');
@@ -4020,7 +4044,7 @@ function drawWorld(){
   let shX=0,shY=0;if(g.shake>0){g.shake--;shX=Math.round((Math.random()-0.5)*4);shY=Math.round((Math.random()-0.5)*4);ctx.translate(shX,shY)}
   ctx.scale(ZM,ZM); // zoomed out for the giant boss
   const cy=g.camy||0;if(g.giantBG&&LV().giant)(LV().theme==='theater'?drawGiantBGTheater:LV().theme==='live'?drawGiantBGLive:drawGiantBG)(cx,cy);else drawBG(cx,cy);ctx.translate(0,-cy); // world below is drawn in map coordinates
-  for(const c of g.candles)if(c.alive&&c.x>cx-16&&c.x<cx+VW)drawCandle(c,cx);drawSecrets(cx);drawArcade(cx);drawMirror(cx);
+  for(const c of g.candles)if(c.alive&&c.x>cx-16&&c.x<cx+VW)drawCandle(c,cx);drawMicArrows(cx);drawSecrets(cx);drawArcade(cx);drawMirror(cx);
   drawTiles(cx,cy);drawSecretFaces(cx);drawCranes(cx);
   drawCream(cx,false);
   if(LV().theme==='practice'||LV().theme==='studio'){const c0=Math.floor(cx/T);for(let c=c0;c<=c0+16;c++){const top=groundTop(c);if(top>=MH)continue;const x=c*T-cx,y=top*T+4;
@@ -4525,3 +4549,5 @@ Promise.race([Promise.all([document.fonts?document.fonts.ready:Promise.resolve()
 </script>
 </body>
 </html>
+
+</body></html>
